@@ -1,4 +1,4 @@
-all: readPcap.c
-	gcc readPcap.c -lpcap -o readPcap
-clean: readPcap
-	rm readPcap
+all: easySniffer.c
+	gcc easySniffer.c -lpcap -o easySniffer
+clean: easySniffer
+	rm easySniffer
