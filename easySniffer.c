@@ -62,6 +62,7 @@ int main(int argc, char* argv[]) {
     }  // failed
     else if (returnValue == -2) {
       printf("File End\n");
+      break;
     }  // end if read no more packet
     if (packetCount == limit) break;
   }
