@@ -19,25 +19,54 @@ int httpCount = 0;
 int bootpCount = 0;
 
 void packetHandler(const struct pcap_pkthdr* pkthdr, const u_char* packet);
+void usage();
 
 int main(int argc, char* argv[]) {
   pcap_t* fp;
   char errbuf[PCAP_ERRBUF_SIZE];
   char source[PCAP_BUF_SIZE];
-  int i, maxCountSyn = 0, maxCountHttp = 0, maxIdxSyn = 0, maxIdxHttp = 0;
-  if (argc < 2) {
-    printf("Please input pcap file name");
+  int limit = -1;
+  int returnValue = 0;
+
+  if (argc < 3) {
+    usage();
     return 0;
   }
-  char errbuff[PCAP_ERRBUF_SIZE];
-  pcap_t* pcap = pcap_open_offline(argv[1], errbuff);
-  struct pcap_pkthdr* header;
 
+  char errbuff[PCAP_ERRBUF_SIZE];
+  pcap_t* pcap;
+
+  if (strcmp(argv[1], "-1") == 0) {
+    pcap_if_t* devices = NULL;
+    if (pcap_findalldevs(&devices, errbuf) == -1) {
+      fprintf(stderr, "pcap_lookupdev failed: %s\n", errbuf);
+      exit(1);
+    }  // end if
+    printf("Sniffing: %s\n", devices->name);
+    pcap = pcap_open_live(devices->name, 65535, 1, 1, errbuf);
+  } else {
+    pcap = pcap_open_offline(argv[1], errbuff);
+  }
+  limit = atoi(argv[2]);
+
+  struct pcap_pkthdr* header;
   const u_char* data;
 
-  while (pcap_next_ex(pcap, &header, &data) >= 0) {
-    packetHandler(header, data);
+  while (1) {
+    int returnValue = pcap_next_ex(pcap, &header, &data);
+    // no more packet
+    if (returnValue == 1) {
+      packetHandler(header, data);
+    } else if (returnValue == -1) {
+      fprintf(stderr, "pcap_next_ex() failed: %s\n", pcap_geterr(pcap));
+    }  // failed
+    else if (returnValue == -2) {
+      printf("File End\n");
+    }  // end if read no more packet
+    if (packetCount == limit) break;
   }
+  pcap_close(pcap);
+
   printf("=====================Summary=====================\n");
   printf("%d ARP packets,%d ICMP packets, %d TCP packets, %d UDP packets\n",
          arpCount, icmpCount, tcpCount, udpCount);
@@ -45,6 +74,13 @@ int main(int argc, char* argv[]) {
   printf("%d bootp/dhcp packets\n", bootpCount);
   printf("=================================================\n");
   return 0;
+}
+
+void usage() {
+  printf("Usage\n");
+  printf("./easySniffer filename num\n");
+  printf("filename : pcap file, -1 mean auto capture device\n");
+  printf("num : capture the packet not more than [num], -1 no limit\n");
 }
 
 void packetHandler(const struct pcap_pkthdr* pkthdr, const u_char* packet) {
