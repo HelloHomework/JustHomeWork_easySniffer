@@ -178,6 +178,7 @@ void packetHandler(const struct pcap_pkthdr* pkthdr, const u_char* packet) {
     arpCount++;
   } else {
     printf("Other Type packets\n");
+    printf("%d",ntohs(ethernetHeader->ether_type));
   }
   printf("=====================\n\n");
 }
